@@ -37,6 +37,8 @@ class GitlabPollsController < ApplicationController
     # TODO 1: Thực hiện call API gitlab để lấy thông tin issue từ thông tin lấy được ở tren
     # TODO 2: Thực hiện call service redmine để tạo issue
     # ...
+    flash[:notice] = 'Sync saved.'
+    redirect_to :action => 'index', project_id: params[:project_id]
   end
 end
 
