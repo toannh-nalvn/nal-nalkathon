@@ -1,3 +1,11 @@
 # English strings go here for Rails i18n
 en:
   # my_label: "My label"
+  label_api_key: "Api key"
+  label_select_project: "Select project"
+  label_milestone: "Milestone"
+  label_ticket_type: "Ticket type"
+
+  placeholder_enter_api_key: "Enter API key"
+
+  title_sync_data_from_gitlab: "Sync data from gitlab"

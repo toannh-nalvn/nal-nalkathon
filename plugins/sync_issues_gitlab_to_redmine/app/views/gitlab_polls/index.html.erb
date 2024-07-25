@@ -1,9 +1,47 @@
-<h2>Polls</h2>
+<h2><%= l(:title_sync_data_from_gitlab) %></h2>
 
-<% @polls.each do |poll| %>
-  <p>
-    <%= poll.question %>?
-    <%= link_to 'Yes', { action: 'vote', id: poll.id, answer: 'yes', project_id: @project.id }, method: :post %> (<%= poll.yes %>) /
-    <%= link_to 'No', { action: 'vote', id: poll.id, answer: 'no', project_id: @project.id }, method: :post %> (<%= poll.no %>)
-  </p>
+<%= form_tag({ :controller => 'gitlab_polls', :action => nil, :project_id => @project },
+             :method => :get, :id => 'query_form') do %>
+
+  <div id="query_form_with_buttons" class="hide-when-print">
+    <div id="query_form_content">
+      <fieldset id="input-info" class="collapsible">
+        <div>
+          <table>
+            <tr>
+              <td><label for='apikey'><%= l(:label_api_key) %></label></td>
+              <td><%= text_field_tag 'apikey', nil, placeholder: l(:placeholder_enter_api_key) %></td>
+            </tr>
+
+            <tr id="project-select">
+              <td><%= l(:label_select_project) %></td>
+              <td>
+                <%= select_tag 'project-select', options_for_select([['Project1', 'project1'], ['Project2', 'project2']]), prompt: 'Select project' %>
+              </td>
+            </tr>
+
+            <tr>
+              <td><label for='milestone'><%= l(:label_milestone) %></label></td>
+              <td>
+                <%= select_tag 'milestone', options_for_select([['22/7/2024-26/7/2024', '22/7/2024-26/7/2024'], ['22/7/2024-29/7/2024', '22/7/2024-29/7/2024']]), prompt: 'Select milestone' %>
+              </td>
+            </tr>
+
+            <tr id="ticket-type">
+              <td><%= l(:label_ticket_type) %></td>
+              <td>
+                <%= select_tag 'ticket-type', options_for_select([['Open', 'open'], ['Close', 'close']]), prompt: 'Select ticket type' %>
+              </td>
+            </tr>
+
+          </table>
+        </div>
+      </fieldset>
+    </div>
+
+    <p class="buttons">
+      <%= link_to_function l(:button_apply), '$("#query_form").submit()', :class => 'icon icon-checked' %>
+      <%= link_to l(:button_clear), { :set_filter => 1, :project_id => @project }, :class => 'icon icon-reload'  %>
+    </p>
+  </div>
 <% end %>
