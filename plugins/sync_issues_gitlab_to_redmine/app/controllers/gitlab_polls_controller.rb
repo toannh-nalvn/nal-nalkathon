@@ -36,7 +36,7 @@ class GitLabClient
   end
 
   def call_api(endpoint)
-    url = URI("#{endpoint}?PRIVATE_TOKEN=#{@private_token}")
+    url = URI("#{endpoint}?private_token=#{@private_token}&visibility=private")
 
     https = Net::HTTP.new(url.host, url.port)
     https.use_ssl = true
