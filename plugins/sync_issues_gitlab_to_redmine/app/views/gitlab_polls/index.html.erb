@@ -89,7 +89,7 @@
                   const inputApiKeyValue = inputApiKeyElement.value;
                   if (inputApiKeyValue.length > 0) {
                       $('#checkApiKeyButton').prop('disabled', true);
-                      $('#apikeyInput').prop('disabled', true);
+                      $('#apikeyInput').attr('readonly', true);
 
                       $.ajax({
                           url: `https://gitlab.nal.vn/api/v4/projects?private_token=${inputApiKeyValue}&visibility=private`,
@@ -106,7 +106,7 @@
                           },
                           error: function (xhr, status, error) {
                               console.error('Error:', error);
-                              $('#apikeyInput').prop('disabled', false);
+                              $('#apikeyInput').removeAttr('readonly');
                           },
                           complete: function () {
                               $('#checkApiKeyButton').prop('disabled', false);
