@@ -16,7 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with redmine_agile.  If not, see <http://www.gnu.org/licenses/>.
-
+# test
 class AgileChartsController < ApplicationController
   menu_item :agile
 
