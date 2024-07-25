@@ -720,15 +720,15 @@ function saveInlineComment(node, url){
   $(node).prop('disabled', true);
   $('.lock').show();
   var card = $(node).parents(".issue-card");
-  var version_board = $('.planning-board').length;
-  $.ajax({
-    url: url,
-    type: "PUT",
-    dataType: "html",
-    data: { issue: { notes: comment }, version_board: version_board },
+  { notes: comment }, version_board: version_board },
     success: function(data, status, xhr){
       $(card).replaceWith(data);
-    },
+    }, var version_board = $('.planning-board').length;
+    $.ajax({
+      url: url,
+      type: "PUT",
+      dataType: "html",
+      data: { issue:
     error: function(xhr, status, error){
       var alertMessage = parseErrorResponse(xhr.responseText);
       if (alertMessage) {
