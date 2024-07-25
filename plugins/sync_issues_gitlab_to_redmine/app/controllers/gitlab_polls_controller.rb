@@ -28,6 +28,16 @@ class GitlabPollsController < ApplicationController
     end
     redirect_to :action => 'index', project_id: params[:project_id]
   end
+
+  def show
+    # @apikey = @query.api_key
+    @project_select = params[:project_select]
+    @milestone_select = params[:milestone_select]
+
+    respond_to do |format|
+      format.html
+    end
+  end
 end
 
 class GitLabClient
