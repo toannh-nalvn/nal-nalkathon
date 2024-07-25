@@ -33,6 +33,10 @@ class GitlabPollsController < ApplicationController
     @apikey = params[:api_key]
     @project_select = params[:project_select]
     @milestone_select = params[:milestone_select]
+    @ticket_type = params[:ticket_type]
+    # TODO 1: Thực hiện call API gitlab để lấy thông tin issue từ thông tin lấy được ở tren
+    # TODO 2: Thực hiện call service redmine để tạo issue
+    # ...
   end
 end
 
