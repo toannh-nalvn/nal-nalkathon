@@ -10,20 +10,21 @@
           <table>
             <tr>
               <td><label for='apikey'><%= l(:label_api_key) %></label></td>
-              <td><%= text_field_tag 'apikey', nil, placeholder: l(:placeholder_enter_api_key) %></td>
+              <td><%= text_field_tag 'apikey', nil, id: 'apikeyInput', placeholder: l(:placeholder_enter_api_key) %></td>
+              <td><%= button_tag 'Check API KEY', type: 'button', id: 'checkApiKeyButton' %></td>
             </tr>
 
-            <tr id="project-select">
+            <tr id="tr-project-select">
               <td><%= l(:label_select_project) %></td>
               <td>
-                <%= select_tag 'project-select', options_for_select([['Project1', 'project1'], ['Project2', 'project2']]), prompt: 'Select project' %>
+                <%= select_tag 'project-select', options_for_select([]), prompt: 'Select project', disabled: true %>
               </td>
             </tr>
 
             <tr>
               <td><label for='milestone'><%= l(:label_milestone) %></label></td>
               <td>
-                <%= select_tag 'milestone', options_for_select([['22/7/2024-26/7/2024', '22/7/2024-26/7/2024'], ['22/7/2024-29/7/2024', '22/7/2024-29/7/2024']]), prompt: 'Select milestone' %>
+                <%= select_tag 'milestone-select', options_for_select([]), prompt: 'Select milestone', disabled: true %>
               </td>
             </tr>
 
@@ -41,7 +42,111 @@
 
     <p class="buttons">
       <%= link_to_function l(:button_apply), '$("#query_form").submit()', :class => 'icon icon-checked' %>
-      <%= link_to l(:button_clear), { :set_filter => 1, :project_id => @project }, :class => 'icon icon-reload'  %>
+      <%= link_to l(:button_clear), { :set_filter => 1, :project_id => @project }, :class => 'icon icon-reload' %>
     </p>
   </div>
+
+  <script>
+      document.addEventListener('DOMContentLoaded', (event) => {
+          const button = document.getElementById('checkApiKeyButton');
+
+          const updateProjectSelectOptions = (options) => {
+              const $projectSelect = $('#project-select');
+              const firstOption = $projectSelect.find('option:first').clone();
+              $projectSelect.empty();
+              $projectSelect.prepend(firstOption);
+
+              $.each(options, function (index, option) {
+                  $projectSelect.append(
+                      $('<option>', {
+                          value: option.id,
+                          text: option.name
+                      })
+                  );
+              });
+          }
+
+          const updateMilestonesSelectOptions = (options) => {
+              const $milestoneSelect = $('#milestone-select');
+              const firstOption = $milestoneSelect.find('option:first').clone();
+              $milestoneSelect.empty();
+              $milestoneSelect.prepend(firstOption);
+
+              $.each(options, function (index, option) {
+                  $milestoneSelect.append(
+                    $('<option>', {
+                        value: option.id,
+                        text: option.name
+                    })
+                  );
+              });
+          }
+
+          // Handle click API KEY INPUT
+          button.addEventListener('click', () => {
+              const inputApiKeyElement = document.getElementById('apikeyInput');
+              if (inputApiKeyElement) {
+                  const inputApiKeyValue = inputApiKeyElement.value;
+                  if (inputApiKeyValue.length > 0) {
+                      $('#checkApiKeyButton').prop('disabled', true);
+                      $('#apikeyInput').prop('disabled', true);
+
+                      $.ajax({
+                          url: `https://gitlab.nal.vn/api/v4/projects?private_token=${inputApiKeyValue}&visibility=private`,
+                          method: 'GET',
+                          timeout: 0,
+                          success: function (response) {
+                              const projects = response.map(({id, name}) => ({
+                                  id,
+                                  name
+                              }));
+
+                              $('#project-select').prop('disabled', false);
+                              updateProjectSelectOptions(projects)
+                          },
+                          error: function (xhr, status, error) {
+                              console.error('Error:', error);
+                              $('#apikeyInput').prop('disabled', false);
+                          },
+                          complete: function () {
+                              $('#checkApiKeyButton').prop('disabled', false);
+                          }
+                      });
+                  }
+              }
+          });
+
+          // Handle onchange project
+          $('#project-select').on('change', function () {
+              const projectId = $(this).val();
+              const inputApiKeyElement = document.getElementById('apikeyInput');
+
+              if (inputApiKeyElement) {
+                  const inputApiKeyValue = inputApiKeyElement.value;
+                  if (inputApiKeyValue.length > 0 && projectId.length > 0) {
+                      $.ajax({
+                          url: `https://gitlab.nal.vn/api/v4/projects/${projectId}/milestones?private_token=${inputApiKeyValue}&visibility=private`,
+                          method: 'GET',
+                          timeout: 0,
+                          success: function (response) {
+                              const milestones = response.map(({id, title}) => ({
+                                  id,
+                                  name: title
+                              }));
+
+                              $('#milestone-select').prop('disabled', false);
+                              updateMilestonesSelectOptions(milestones)
+                          },
+                          error: function (xhr, status, error) {
+                              console.error('Error:', error);
+                          },
+                          complete: function () {
+
+                          }
+                      });
+                  }
+              }
+          });
+      });
+  </script>
 <% end %>
