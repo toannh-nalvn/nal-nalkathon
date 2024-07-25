@@ -30,13 +30,9 @@ class GitlabPollsController < ApplicationController
   end
 
   def show
-    # @apikey = @query.api_key
+    @apikey = params[:api_key]
     @project_select = params[:project_select]
     @milestone_select = params[:milestone_select]
-
-    respond_to do |format|
-      format.html
-    end
   end
 end
 
