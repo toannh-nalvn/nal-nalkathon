@@ -1,0 +1,2 @@
+module GitlabPollsHelper
+end
