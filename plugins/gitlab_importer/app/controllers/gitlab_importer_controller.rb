@@ -21,13 +21,22 @@ class GitlabImporterController < ApplicationController
   end
 
   def setting
-    @project = Project.find(params[:project_id])
+    project_id = params[:project_id]
+    @project = Project.find(project_id)
     if @project.nil?
       flash[:error] = l(:error_no_project)
       return
     end
 
     @setting = GitlabImportSetting.find_by_project_id(@project.id)
+    unless @setting.nil?
+      project_url = "#{GITLAB_API_PATH}/projects?per_page=20"
+      response = RestClient::Request.execute(method: :get, url: project_url, headers: {'private-token' => @setting.access_token})
+      @gitlab_projects = JSON.parse(response.body)
+      label_url = "#{GITLAB_API_PATH}/projects/#{@setting.gitlab_project_id}/labels?per_page=100"
+      response = RestClient::Request.execute(method: :get, url: project_url, headers: {'private-token' => @setting.access_token})
+      @gitlab_labels = JSON.parse(response.body)
+    end
   end
 
   def update_setting
