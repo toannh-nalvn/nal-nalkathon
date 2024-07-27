@@ -15,9 +15,17 @@ class GitlabImporterController < ApplicationController
   HIGH_PRIORITY = 3
 
   def index
-    puts "Project's id: %s" % [params[:project_id]]
-    @project = Project.find(params[:project_id])
+    project_id = params[:project_id]
+    @project = Project.find(project_id)
+    if @project.nil?
+      flash[:error] = l(:error_no_project)
+      return
+    end
     @issues_count = @project.issues.count
+    @setting = GitlabImportSetting.find_by_project_id(@project.id)
+    if @setting.nil?
+      redirect_to :action => 'setting', project_id: project_id
+    end
   end
 
   def setting
@@ -34,7 +42,7 @@ class GitlabImporterController < ApplicationController
       response = RestClient::Request.execute(method: :get, url: project_url, headers: {'private-token' => @setting.access_token})
       @gitlab_projects = JSON.parse(response.body)
       label_url = "#{GITLAB_API_PATH}/projects/#{@setting.gitlab_project_id}/labels?per_page=100"
-      response = RestClient::Request.execute(method: :get, url: project_url, headers: {'private-token' => @setting.access_token})
+      response = RestClient::Request.execute(method: :get, url: label_url, headers: {'private-token' => @setting.access_token})
       @gitlab_labels = JSON.parse(response.body)
     end
   end
