@@ -8,6 +8,7 @@
     <li>Name: <%= @project.name %></li>
     <li>Description: <%= @project.description %></li>
     <li>Total issues: <%= @issues_count %></li>
+    <li>Import for project: <%= @gitlab_project['name'] %></li>
   </ul>
 </div>
 
@@ -21,37 +22,20 @@
       <fieldset id="input-info" class="collapsible">
         <div>
           <table>
-            <tr>
-              <td><label for='access_token'>Gitlab access key</label></td>
-              <td><%= text_field_tag 'access_token', nil, id: 'apikeyInput', placeholder: 'Enter your Gitlab access key' %></td>
-              <td><%= button_tag 'Check API KEY', type: 'button', id: 'checkApiKeyButton' %></td>
-            </tr>
-
-            <tr id="tr-gitlab_project_id">
-              <td>Select project</td>
-              <td>
-                <%= select_tag 'gitlab_project_id', options_for_select([]), prompt: 'Select project', disabled: true %>
-              </td>
-            </tr>
 
             <tr>
               <td><label for='milestone'>Milestone</label></td>
               <td>
-                <%= select_tag 'milestone_select', options_for_select([]), prompt: 'Select milestone', disabled: true %>
+                <% milestones = @gitlab_milestones.nil? ? [] : @gitlab_milestones.map {|p| [p['title'], p['id']]}%>
+                <%= select_tag 'milestone_select', options_for_select(milestones), prompt: 'Select milestone' %>
               </td>
             </tr>
 
             <tr>
               <td><label for='label'>Label</label></td>
               <td>
-                <%= select_tag 'label_select', options_for_select([]), prompt: 'Select label', disabled: true %>
-              </td>
-            </tr>
-
-            <tr>
-              <td><label for='parent_label'>Parent label</label></td>
-              <td>
-                <%= select_tag 'parent_label', options_for_select([]), prompt: 'Select parent label', disabled: true %>
+                <% labels = @gitlab_labels.nil? ? [] : @gitlab_labels.map {|p| [p['name'], p['id']]}%>
+                <%= select_tag 'label_select', options_for_select(labels), prompt: 'Select label' %>
               </td>
             </tr>
 
