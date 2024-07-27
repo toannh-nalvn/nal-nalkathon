@@ -4,6 +4,7 @@
     <li>Name: <%= @project.name %></li>
     <li>Description: <%= @project.description %></li>
     <li>Total issues: <%= @issues_count %></li>
+    <li><%= link_to "Setting", controller: 'gitlab_importer', action: 'setting' %></li>
   </ul>
 </div>
 
@@ -52,7 +53,7 @@
             <tr id="ticket_type">
               <td>Issue status</td>
               <td>
-                <%= select_tag 'ticket_type', options_for_select([['Open', 'open'], ['Close', 'close']]), selected: 'open' %>
+                <%= select_tag 'ticket_type', options_for_select([['Open', 'opened'], ['Close', 'closed']]), selected: 'opened' %>
               </td>
             </tr>
 
