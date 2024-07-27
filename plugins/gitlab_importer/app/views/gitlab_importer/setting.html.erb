@@ -1,4 +1,7 @@
 <h3>Gitlab setting</h3>
+<div class="contextual">
+  <%= link_to "Import issues", controller: 'gitlab_importer', action: 'index' %>
+</div>
 
 <%= form_tag({ :controller => 'gitlab_importer', :action => 'update_setting', :project_id => @project },
              :method => :post, :id => 'query_form') do %>

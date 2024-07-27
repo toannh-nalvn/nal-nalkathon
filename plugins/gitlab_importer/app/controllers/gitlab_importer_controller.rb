@@ -62,7 +62,7 @@ class GitlabImporterController < ApplicationController
     redmine_project = Project.find_by_identifier(project_id)
     if redmine_project.nil?
       flash[:error] = l(:error_no_project)
-      redirect_to :action => 'index', project_id: params[:project_id]
+      redirect_to :action => 'setting', project_id: params[:project_id]
       return
     end
     access_token = params[:access_token]
@@ -72,11 +72,18 @@ class GitlabImporterController < ApplicationController
     setting = GitlabImportSetting.find_by_project_id(redmine_project.id)
     if setting.nil?
       begin
-        GitlabImportSetting.create({
+        setting = GitlabImportSetting.new({
                                    :project_id => redmine_project.id,
                                    :gitlab_project_id => gitlab_project_id,
                                    :access_token => access_token,
                                    :issue_parent_label => issue_parent_label })
+        if setting.valid?
+          setting.save
+        else
+          flash[:error] = 'Invalid project setting'
+          redirect_to :action => 'setting', project_id: project_id
+          return
+        end
       rescue Exception => e
         flash[:error] = e.message
         redirect_to :action => 'setting', project_id: params[:project_id]
@@ -90,7 +97,9 @@ class GitlabImporterController < ApplicationController
     end
 
     if import_milestone
-
+      project_url = "#{GITLAB_API_PATH}/milestones?per_page=20"
+      response = RestClient::Request.execute(method: :get, url: project_url, headers: {'private-token' => @setting.access_token})
+      @gitlab_projects = JSON.parse(response.body)
     end
     flash[:notice] = "Import settings were successfully."
     redirect_to :action => 'setting', project_id: project_id
@@ -132,13 +141,23 @@ class GitlabImporterController < ApplicationController
           end
         end
         issue_labels = issue['labels']
+        priority_id = NORMAL_PRIORITY
+        if issue_labels.find { |label| label['name'] == 'High' || label['name'] == 'HIGH'}
+          priority_id = HIGH_PRIORITY
+        end
+        if issue_labels.find { |label| label['name'] == 'Normal' || label['name'] == 'NORMAL' || label['name'] == 'Medium' || label['name'] == 'MEDIUM'}
+          priority_id = NORMAL_PRIORITY
+        end
+
+        trackers = Tracker.all
+
         Issue.create({ :tracker_id => DEFAULT_TRACKER_ID,
                        :project_id => redmine_project.id,
                        :subject => issue['title'],
                        :description => issue['description'],
                        :due_date => issue['due_date'],
                        :status_id => status_id,
-                       :priority_id => DEFAULT_PRIORITY,
+                       :priority_id => priority_id,
                        :author_id => author_id,
                        :assigned_to_id => assignee_id,
                        :created_on => issue['created_at'],
