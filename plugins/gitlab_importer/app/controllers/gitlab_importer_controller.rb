@@ -21,9 +21,13 @@ class GitlabImporterController < ApplicationController
   end
 
   def setting
-    puts "Project's id: %s" % [params[:project_id]]
-    @project = Project.find(params[:project_id])
-    @issues_count = @project.issues.count
+    redmine_project = Project.find(params[:project_id])
+    if redmine_project.nil?
+      flash[:error] = l(:error_no_project)
+      return
+    end
+
+    @setting = GitlabImportSetting.find_by_project_id(params[redmine_project.id])
   end
 
   def update_setting
