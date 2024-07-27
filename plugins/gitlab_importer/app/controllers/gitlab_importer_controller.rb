@@ -25,7 +25,17 @@ class GitlabImporterController < ApplicationController
     @setting = GitlabImportSetting.find_by_project_id(@project.id)
     if @setting.nil?
       redirect_to :action => 'setting', project_id: project_id
+      return
     end
+    project_url = "#{GITLAB_API_PATH}/projects/#{@setting.gitlab_project_id}"
+    response = RestClient::Request.execute(method: :get, url: project_url, headers: {'private-token' => @setting.access_token})
+    @gitlab_project = JSON.parse(response.body)
+    label_url = "#{GITLAB_API_PATH}/projects/#{@setting.gitlab_project_id}/labels?per_page=100"
+    response = RestClient::Request.execute(method: :get, url: label_url, headers: {'private-token' => @setting.access_token})
+    @gitlab_labels = JSON.parse(response.body)
+    milestone_url = "#{GITLAB_API_PATH}/projects/#{@setting.gitlab_project_id}/milestones?per_page=100"
+    response = RestClient::Request.execute(method: :get, url: milestone_url, headers: {'private-token' => @setting.access_token})
+    @gitlab_milestones = JSON.parse(response.body)
   end
 
   def setting
@@ -61,11 +71,17 @@ class GitlabImporterController < ApplicationController
     import_milestone = params[:import_milestone]
     setting = GitlabImportSetting.find_by_project_id(redmine_project.id)
     if setting.nil?
-      GitlabImportSetting.create({
+      begin
+        GitlabImportSetting.create({
                                    :project_id => redmine_project.id,
                                    :gitlab_project_id => gitlab_project_id,
                                    :access_token => access_token,
                                    :issue_parent_label => issue_parent_label })
+      rescue Exception => e
+        flash[:error] = e.message
+        redirect_to :action => 'setting', project_id: params[:project_id]
+        return
+      end
     else
       setting.gitlab_project_id = gitlab_project_id
       setting.access_token = access_token
