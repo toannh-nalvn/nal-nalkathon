@@ -42,6 +42,13 @@
               </td>
             </tr>
 
+            <tr>
+              <td><label for='parent_label'>Parent label</label></td>
+              <td>
+                <%= select_tag 'parent_label', options_for_select([]), prompt: 'Select parent label', disabled: true %>
+              </td>
+            </tr>
+
             <tr id="ticket_type">
               <td>Issue status</td>
               <td>
@@ -86,6 +93,7 @@
 
           const updateMilestonesSelectOptions = (options) => updateSelectUI($('#milestone_select'), options)
           const updateLabelsSelectOptions = (options) => updateSelectUI($('#label_select'), options)
+          const updateParentLabelsSelectOptions = (options) => updateSelectUI($('#parent_label'), options)
           const updateProjectSelectOptions = (options) => updateSelectUI($('#gitlab_project_id'), options)
           const fetchData = async (url, method = 'GET', timeout = 0) => {
               try {
@@ -129,7 +137,9 @@
                   }));
 
                   $('#label_select').prop('disabled', false);
+                  $('#parent_label').prop('disabled', false);
                   updateLabelsSelectOptions(labels)
+                  updateParentLabelsSelectOptions(labels)
               } catch (error) {
                   console.error('Error fetching labels:', error);
               }
