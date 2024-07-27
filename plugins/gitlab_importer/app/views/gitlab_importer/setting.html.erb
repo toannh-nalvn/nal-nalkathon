@@ -1,13 +1,6 @@
-<h3>Project status:</h3>
-<div id="project">
-  <ul>
-    <li>Name: <%= @project.name %></li>
-    <li>Description: <%= @project.description %></li>
-    <li>Total issues: <%= @issues_count %></li>
-  </ul>
-</div>
+<h3>Gitlab setting</h3>
 
-<%= form_tag({ :controller => 'gitlab_importer', :action => 'import', :project_id => @project },
+<%= form_tag({ :controller => 'gitlab_importer', :action => 'update_setting', :project_id => @project },
              :method => :post, :id => 'query_form') do %>
 
   <div id="query_form_with_buttons" class="hide-when-print">
@@ -17,7 +10,7 @@
           <table>
             <tr>
               <td><label for='access_token'>Gitlab access key</label></td>
-              <td><%= text_field_tag 'access_token', nil, id: 'apikeyInput', placeholder: 'Enter your Gitlab access key' %></td>
+              <td><%= text_field_tag 'access_token', @setting ? @setting.access_token : nil, id: 'apikeyInput', placeholder: 'Enter your Gitlab access key' %></td>
               <td><%= button_tag 'Check API KEY', type: 'button', id: 'checkApiKeyButton' %></td>
             </tr>
 
@@ -29,33 +22,18 @@
             </tr>
 
             <tr>
-              <td><label for='milestone'>Milestone</label></td>
+              <td><label for='label'>Parent label</label></td>
               <td>
-                <%= select_tag 'milestone_select', options_for_select([]), prompt: 'Select milestone', disabled: true %>
+                <%= select_tag 'issue_parent_label', options_for_select([]), prompt: 'Select label', disabled: true %>
               </td>
             </tr>
 
             <tr>
-              <td><label for='label'>Label</label></td>
+              <td>Import milestone</td>
               <td>
-                <%= select_tag 'label_select', options_for_select([]), prompt: 'Select label', disabled: true %>
+                <%= select_tag 'import_milestone', options_for_select([['Yes', 'yes'], ['No', 'no']]), value: 'no' %>
               </td>
             </tr>
-
-            <tr id="ticket_type">
-              <td>Issue status</td>
-              <td>
-                <%= select_tag 'ticket_type', options_for_select([['Open', 'opened'], ['Close', 'closed']]), selected: 'opened' %>
-              </td>
-            </tr>
-
-            <tr id="is_comment">
-              <td>Comment</td>
-              <td>
-                <%= select_tag 'is_comment', options_for_select([['Yes', 'yes'], ['No', 'no']]), selected: 'no' %>
-              </td>
-            </tr>
-
           </table>
         </div>
       </fieldset>
@@ -66,145 +44,126 @@
       <%= link_to l(:button_clear), { :set_filter => 1, :project_id => @project.id }, :class => 'icon icon-reload' %>
     </p>
   </div>
+<% end %>
 
-  <script>
-      document.addEventListener('DOMContentLoaded', (event) => {
-          const button = document.getElementById('checkApiKeyButton');
+<%= javascript_tag do %>
+    $(document).ready(function() {
+        const updateSelectUI = (element, options) => {
+            const firstOption = element.find('option:first').clone();
+            element.empty();
+            element.prepend(firstOption);
 
-          const updateProjectSelectOptions = (options) => {
-              const $projectSelect = $('#gitlab_project_id');
-              const firstOption = $projectSelect.find('option:first').clone();
-              $projectSelect.empty();
-              $projectSelect.prepend(firstOption);
+            $.each(options, function (index, option) {
+                element.append(
+                  $('<option>', {
+                      value: option.id,
+                      text: option.name
+                  })
+                );
+            });
+        }
 
-              $.each(options, function (index, option) {
-                  $projectSelect.append(
-                      $('<option>', {
-                          value: option.id,
-                          text: option.name
-                      })
-                  );
-              });
-          }
+        const updateMilestonesSelectOptions = (options) => updateSelectUI($('#milestone_select'), options)
+        const updateLabelsSelectOptions = (options) => updateSelectUI($('#issue_parent_label'), options)
+        const updateParentLabelsSelectOptions = (options) => updateSelectUI($('#parent_label'), options)
+        const updateProjectSelectOptions = (options) => updateSelectUI($('#gitlab_project_id'), options)
+        const fetchData = async (url, method = 'GET', timeout = 0) => {
+            try {
+                const response = await $.ajax({
+                    url,
+                    method,
+                    timeout
+                });
+                return response;
+            } catch (error) {
+                console.error('Error:', error);
+                throw error;
+            }
+        }
 
-          const updateMilestonesSelectOptions = (options) => {
-              const $milestoneSelect = $('#milestone_select');
-              const firstOption = $milestoneSelect.find('option:first').clone();
-              $milestoneSelect.empty();
-              $milestoneSelect.prepend(firstOption);
+        const fetchMilestones = async (projectId, inputApiKeyValue) => {
+            const url = `https://gitlab.nal.vn/api/v4/projects/${projectId}/milestones?private_token=${inputApiKeyValue}&visibility=private`;
 
-              $.each(options, function (index, option) {
-                  $milestoneSelect.append(
-                      $('<option>', {
-                          value: option.id,
-                          text: option.name
-                      })
-                  );
-              });
-          }
+            try {
+                const response = await fetchData(url);
+                const milestones = response.map(({id, title}) => ({
+                    id,
+                    name: title
+                }));
 
-          const updateLabelsSelectOptions = (options) => {
-              const $labelSelect = $('#label_select');
-              const firstOption = $labelSelect.find('option:first').clone();
-              $labelSelect.empty();
-              $labelSelect.prepend(firstOption);
+                $('#milestone_select').prop('disabled', false);
+                updateMilestonesSelectOptions(milestones);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
 
-              $.each(options, function (index, option) {
-                  $labelSelect.append(
-                    $('<option>', {
-                        value: option.id,
-                        text: option.name
-                    })
-                  );
-              });
-          }
+        const fetchLabels = async (projectId, inputApiKeyValue) => {
+            const url = `https://gitlab.nal.vn/api/v4/projects/${projectId}/labels?private_token=${inputApiKeyValue}&visibility=private`;
 
-          // Handle click API KEY INPUT
-          button.addEventListener('click', () => {
-              const inputApiKeyElement = document.getElementById('apikeyInput');
-              if (inputApiKeyElement) {
-                  const inputApiKeyValue = inputApiKeyElement.value;
-                  if (inputApiKeyValue.length > 0) {
-                      $('#checkApiKeyButton').prop('disabled', true);
-                      $('#apikeyInput').attr('readonly', true);
+            try {
+                const response = await fetchData(url);
+                const labels = response.map(({id, name}) => ({
+                    id,
+                    name
+                }));
 
-                      $.ajax({
-                          url: `https://gitlab.nal.vn/api/v4/projects?private_token=${inputApiKeyValue}&visibility=private`,
-                          method: 'GET',
-                          timeout: 0,
-                          success: function (response) {
-                              const projects = response.map(({id, name}) => ({
-                                  id,
-                                  name
-                              }));
+                $('#issue_parent_label').prop('disabled', false);
+                $('#parent_label').prop('disabled', false);
+                updateLabelsSelectOptions(labels)
+                updateParentLabelsSelectOptions(labels)
+            } catch (error) {
+                console.error('Error fetching labels:', error);
+            }
+        }
 
-                              $('#gitlab_project_id').prop('disabled', false);
-                              updateProjectSelectOptions(projects)
-                          },
-                          error: function (xhr, status, error) {
-                              console.error('Error:', error);
-                              $('#apikeyInput').removeAttr('readonly');
-                          },
-                          complete: function () {
-                              $('#checkApiKeyButton').prop('disabled', false);
-                          }
-                      });
-                  }
-              }
-          });
+        const fetchProjects = async (inputApiKeyValue) => {
+            const url = `https://gitlab.nal.vn/api/v4/projects?private_token=${inputApiKeyValue}&visibility=private`;
 
-          // Handle onchange project
-          $('#gitlab_project_id').on('change', function () {
-              const projectId = $(this).val();
-              const inputApiKeyElement = document.getElementById('apikeyInput');
+            try {
+                const response = await fetchData(url);
+                const projects = response.map(({id, name}) => ({
+                    id,
+                    name
+                }));
 
-              if (inputApiKeyElement) {
-                  const inputApiKeyValue = inputApiKeyElement.value;
-                  if (inputApiKeyValue.length > 0 && projectId.length > 0) {
-                      $.ajax({
-                          url: `https://gitlab.nal.vn/api/v4/projects/${projectId}/milestones?private_token=${inputApiKeyValue}&visibility=private`,
-                          method: 'GET',
-                          timeout: 0,
-                          success: function (response) {
-                              const milestones = response.map(({id, title}) => ({
-                                  id,
-                                  name: title
-                              }));
+                $('#gitlab_project_id').prop('disabled', false);
+                updateProjectSelectOptions(projects)
+            } catch (error) {
+                console.error('Error:', error);
+                $('#apikeyInput').removeAttr('readonly');
+            } finally {
+                $('#checkApiKeyButton').prop('disabled', false);
+            }
+        }
 
-                              $('#milestone_select').prop('disabled', false);
-                              updateMilestonesSelectOptions(milestones)
-                          },
-                          error: function (xhr, status, error) {
-                              console.error('Error:', error);
-                          },
-                          complete: function () {
 
-                          }
-                      });
+        // Handle click API KEY INPUT
+        const button = document.getElementById('checkApiKeyButton');
+        button.addEventListener('click', () => {
+            const inputApiKeyElement = document.getElementById('apikeyInput');
+            if (inputApiKeyElement) {
+                const inputApiKeyValue = inputApiKeyElement.value;
+                if (inputApiKeyValue.length > 0) {
+                    $('#checkApiKeyButton').prop('disabled', true);
+                    $('#apikeyInput').attr('readonly', true);
+                    fetchProjects(inputApiKeyValue);
+                }
+            }
+        });
 
-                      $.ajax({
-                          url: `https://gitlab.nal.vn/api/v4/projects/${projectId}/labels?private_token=${inputApiKeyValue}&visibility=private`,
-                          method: 'GET',
-                          timeout: 0,
-                          success: function (response) {
-                              const labels = response.map(({id, name}) => ({
-                                  id,
-                                  name
-                              }));
+        // Handle onchange project
+        $('#gitlab_project_id').on('change', function () {
+            const projectId = $(this).val();
+            const inputApiKeyElement = document.getElementById('apikeyInput');
 
-                              $('#label_select').prop('disabled', false);
-                              updateLabelsSelectOptions(labels)
-                          },
-                          error: function (xhr, status, error) {
-                              console.error('Error:', error);
-                          },
-                          complete: function () {
-
-                          }
-                      });
-                  }
-              }
-          });
-      });
-  </script>
+            if (inputApiKeyElement) {
+                const inputApiKeyValue = inputApiKeyElement.value;
+                if (inputApiKeyValue.length > 0 && projectId.length > 0) {
+                    fetchMilestones(projectId, inputApiKeyValue);
+                    fetchLabels(projectId, inputApiKeyValue);
+                }
+            }
+        });
+    })
 <% end %>

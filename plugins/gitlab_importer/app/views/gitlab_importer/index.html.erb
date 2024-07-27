@@ -1,12 +1,17 @@
+<div class="contextual">
+  <%= link_to "Setting", controller: 'gitlab_importer', action: 'setting' %>
+</div>
+
 <h3>Project status:</h3>
 <div id="project">
   <ul>
     <li>Name: <%= @project.name %></li>
     <li>Description: <%= @project.description %></li>
     <li>Total issues: <%= @issues_count %></li>
-    <li><%= link_to "Setting", controller: 'gitlab_importer', action: 'setting' %></li>
   </ul>
 </div>
+
+
 
 <%= form_tag({ :controller => 'gitlab_importer', :action => 'import', :project_id => @project },
              :method => :post, :id => 'query_form') do %>
