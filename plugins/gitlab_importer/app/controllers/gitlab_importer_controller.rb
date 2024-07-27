@@ -21,6 +21,7 @@ class GitlabImporterController < ApplicationController
   end
 
   def setting
+    @project = Project.find(params[:project_id])
     redmine_project = Project.find(params[:project_id])
     if redmine_project.nil?
       flash[:error] = l(:error_no_project)
@@ -41,11 +42,16 @@ class GitlabImporterController < ApplicationController
     access_token = params[:access_token]
     gitlab_project_id = params[:gitlab_project_id]
     issue_parent_label = params[:issue_parent_label]
+    import_milestone = params[:import_milestone]
     GitlabImportSetting.create({
       project_id: redmine_project.id,
       gitlab_project_id: gitlab_project_id,
       access_token: access_token,
       issue_parent_label: issue_parent_label })
+
+    if import_milestone == 'yes'
+
+    end
     flash[:notice] = "Import settings were successfully."
     redirect_to :action => 'setting', project_id: project_id
   end
