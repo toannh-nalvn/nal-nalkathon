@@ -1,10 +1,10 @@
 <h3>Project status:</h3>
 <div id="project">
-    <ul>
-      <li>Name: <%= @project.name %></li>
-      <li>Description: <%= @project.description %></li>
-      <li>Total issues: <%= @issues_count %></li>
-    </ul>
+  <ul>
+    <li>Name: <%= @project.name %></li>
+    <li>Description: <%= @project.description %></li>
+    <li>Total issues: <%= @issues_count %></li>
+  </ul>
 </div>
 
 <%= form_tag({ :controller => 'gitlab_importer', :action => 'import', :project_id => @project },
@@ -17,7 +17,7 @@
           <table>
             <tr>
               <td><label for='access_token'>Gitlab access key</label></td>
-              <td><%= text_field_tag 'access_token', nil, id: 'apikeyInput', placeholder:  'Enter your Gitlab access key'%></td>
+              <td><%= text_field_tag 'access_token', nil, id: 'apikeyInput', placeholder: 'Enter your Gitlab access key' %></td>
               <td><%= button_tag 'Check API KEY', type: 'button', id: 'checkApiKeyButton' %></td>
             </tr>
 
@@ -35,10 +35,24 @@
               </td>
             </tr>
 
+            <tr>
+              <td><label for='label'>Label</label></td>
+              <td>
+                <%= select_tag 'label_select', options_for_select([]), prompt: 'Select label', disabled: true %>
+              </td>
+            </tr>
+
             <tr id="ticket_type">
               <td>Issue status</td>
               <td>
-                <%= select_tag 'ticket_type', options_for_select([['Open', 'open'], ['Close', 'close']]), prompt: 'Select issue status' %>
+                <%= select_tag 'ticket_type', options_for_select([['Open', 'open'], ['Close', 'close']]), selected: 'open' %>
+              </td>
+            </tr>
+
+            <tr id="is_comment">
+              <td>Comment</td>
+              <td>
+                <%= select_tag 'is_comment', options_for_select([['Yes', 'yes'], ['No', 'no']]), selected: 'no' %>
               </td>
             </tr>
 
@@ -85,6 +99,22 @@
                           value: option.id,
                           text: option.name
                       })
+                  );
+              });
+          }
+
+          const updateLabelsSelectOptions = (options) => {
+              const $labelSelect = $('#label_select');
+              const firstOption = $labelSelect.find('option:first').clone();
+              $labelSelect.empty();
+              $labelSelect.prepend(firstOption);
+
+              $.each(options, function (index, option) {
+                  $labelSelect.append(
+                    $('<option>', {
+                        value: option.id,
+                        text: option.name
+                    })
                   );
               });
           }
@@ -143,6 +173,27 @@
 
                               $('#milestone_select').prop('disabled', false);
                               updateMilestonesSelectOptions(milestones)
+                          },
+                          error: function (xhr, status, error) {
+                              console.error('Error:', error);
+                          },
+                          complete: function () {
+
+                          }
+                      });
+
+                      $.ajax({
+                          url: `https://gitlab.nal.vn/api/v4/projects/${projectId}/labels?private_token=${inputApiKeyValue}&visibility=private`,
+                          method: 'GET',
+                          timeout: 0,
+                          success: function (response) {
+                              const labels = response.map(({id, name}) => ({
+                                  id,
+                                  name
+                              }));
+
+                              $('#label_select').prop('disabled', false);
+                              updateLabelsSelectOptions(labels)
                           },
                           error: function (xhr, status, error) {
                               console.error('Error:', error);
