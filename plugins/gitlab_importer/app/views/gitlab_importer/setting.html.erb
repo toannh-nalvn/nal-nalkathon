@@ -17,7 +17,7 @@
             <tr id="tr-gitlab_project_id">
               <td>Select project</td>
               <td>
-                <% projects = @gitlab_projects.nil? ? [] : @gitlab_projects.map {|p| [name: p['name'], id: p['id']]}%>
+                <% projects = @gitlab_projects.nil? ? [] : @gitlab_projects.map {|p| [p['name'], p['id']]}%>
                 <%= select_tag 'gitlab_project_id', options_for_select(projects), prompt: 'Select project', selected: @setting.nil? ? nil : @setting.gitlab_project_id %>
               </td>
             </tr>
