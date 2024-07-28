@@ -117,7 +117,23 @@ class GitlabImporterController < ApplicationController
     end
 
     if import_milestone
-      # @gitlab_projects = get_gitlab_projects(setting.access_token).map { |p| OptionSelect.new(p['id'], p['name']) }
+      gitlab_milestones = get_gitlab_milestones(gitlab_project_id, access_token).filter
+                            .map { |m| {
+        :project_id => project_id,
+        :name => m['title'],
+        :description => m['description'],
+        :status => m['state'] == 'active' ? 0 : 1,
+        :start_date => m['start_date'],
+        :end_date => m['due_date'],
+        :created_at => m['created_at'],
+        :updated_at => m['updated_at']
+      } }.filter! { |m|
+        sprint = AgileSprints.where(:project_id => project_id, :name => m['name'])
+        sprint.nil?
+      }
+      unless gitlab_milestones.nil? || gitlab_milestones.empty?
+        AgileSprints.insert_all(gitlab_milestones)
+      end
     end
     flash[:notice] = "Import settings were successfully."
     redirect_to :action => 'setting', project_id: project_id
@@ -135,8 +151,10 @@ class GitlabImporterController < ApplicationController
     imported_issue_count = 0
     gitlab_project_id = setting.gitlab_project_id
     access_token = setting.access_token
-    milestone_id = params[:milestone]
-    issue_label = params[:label]
+    milestone_id = params[:milestone_select]
+    issue_label = params[:label_select]
+    issue_status = params[:ticket_type]
+    import_comment = params[:is_comment]
     issue_url = "#{GITLAB_API_PATH}/projects/#{gitlab_project_id}/issues?per_page=100"
     begin
       response = RestClient::Request.execute(method: :get, url: issue_url, headers: {'private-token' => access_token})
