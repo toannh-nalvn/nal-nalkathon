@@ -21,7 +21,7 @@
               <td>Select project</td>
               <td>
                 <% projects = @gitlab_projects.nil? ? [] : @gitlab_projects.map {|p| [p['name'], p['id']]}%>
-                <%= select_tag 'gitlab_project_id', options_for_select(projects), prompt: 'Select project', selected: @setting.nil? ? nil : @setting.gitlab_project_id %>
+                <%= select_tag 'gitlab_project_id', options_for_select(projects, @setting.nil? ? nil : @setting.gitlab_project_id) %>
               </td>
             </tr>
 
@@ -29,7 +29,7 @@
               <td><label for='label'>Parent label</label></td>
               <td>
                 <% labels = @gitlab_labels.nil? ? [] : @gitlab_labels.map {|p| [p['name'], p['id']]}%>
-                <%= select_tag 'issue_parent_label', options_for_select(labels), prompt: 'Select label', selected: @setting.nil? ? nil : @setting.issue_parent_label %>
+                <%= select_tag 'issue_parent_label', options_for_select(labels, @setting.nil? ? nil : @setting.parent_label_id), prompt: 'Select label' %>
               </td>
             </tr>
 
