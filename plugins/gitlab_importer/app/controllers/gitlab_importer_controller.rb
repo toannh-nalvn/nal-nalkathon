@@ -21,7 +21,7 @@ class GitlabImporterController < ApplicationController
   end
 
   def get_gitlab_projects(token)
-    project_url = "#{GITLAB_API_PATH}/projects?per_page=100"
+    project_url = "#{GITLAB_API_PATH}/projects?per_page=20"
     response = RestClient::Request.execute(method: :get, url: project_url, headers: {'private-token' => token})
     JSON.parse(response.body)
   end
@@ -41,6 +41,12 @@ class GitlabImporterController < ApplicationController
   def get_gitlab_milestones(project_id, token)
     milestone_url = "#{GITLAB_API_PATH}/projects/#{project_id}/milestones?per_page=100"
     response = RestClient::Request.execute(method: :get, url: milestone_url, headers: {'private-token' => token})
+    JSON.parse(response.body)
+  end
+
+  def get_gitlab_issue_comments(project_id, issue_iid, token)
+    note_url = "#{GITLAB_API_PATH}/projects/#{project_id}/issues/#{issue_iid}/notes"
+    response = RestClient::Request.execute(method: :get, url: note_url, headers: {'private-token' => token})
     JSON.parse(response.body)
   end
 
@@ -87,7 +93,7 @@ class GitlabImporterController < ApplicationController
     end
     access_token = params[:access_token]
     gitlab_project_id = params[:gitlab_project_id]
-    parent_label_id = params[:issue_parent_label]
+    parent_label = params[:issue_parent_label]
     import_milestone = params[:import_milestone]
     setting = GitlabImportSetting.find_by_project_id(redmine_project.id)
     if setting.nil?
@@ -96,7 +102,7 @@ class GitlabImporterController < ApplicationController
                                    :project_id => redmine_project.id,
                                    :gitlab_project_id => gitlab_project_id,
                                    :access_token => access_token,
-                                   :parent_label_id => parent_label_id})
+                                   :parent_label => parent_label})
         if setting.valid?
           setting.save
         else
@@ -112,7 +118,7 @@ class GitlabImporterController < ApplicationController
     else
       setting.gitlab_project_id = gitlab_project_id
       setting.access_token = access_token
-      setting.parent_label_id = parent_label_id
+      setting.parent_label = parent_label
       setting.save
     end
 
@@ -151,13 +157,25 @@ class GitlabImporterController < ApplicationController
     imported_issue_count = 0
     gitlab_project_id = setting.gitlab_project_id
     access_token = setting.access_token
-    milestone_id = params[:milestone_select]
-    issue_label = params[:label_select]
-    issue_status = params[:ticket_type]
-    import_comment = params[:is_comment]
+    milestone = params[:milestone_select]
+    issue_labels = params[:label_selects]
+    issue_status = params[:issue_status].empty? ? 'all' : params[:ticket_type]
+    import_comment = params[:import_comment]
+    search_params = Hash.new
+    unless milestone.nil? || milestone.empty?
+      search_params[:milestone] = milestone
+    end
+    unless issue_labels.nil? || issue_labels.empty?
+      search_params[:labels] = issue_labels
+    end
+    unless issue_status != 'all'
+      search_params[:state] = issue_status
+    end
     issue_url = "#{GITLAB_API_PATH}/projects/#{gitlab_project_id}/issues?per_page=100"
+    trackers = Tracker.all
+
     begin
-      response = RestClient::Request.execute(method: :get, url: issue_url, headers: {'private-token' => access_token})
+      response = RestClient::Request.execute(method: :get, url: issue_url, headers: {'private-token' => access_token}, params: search_params)
       issues = JSON.parse(response.body)
       issues.each { |issue|
         if Issue.exists?(:project_id => redmine_project.id, :subject => issue['title'])
@@ -188,12 +206,12 @@ class GitlabImporterController < ApplicationController
           priority_id = NORMAL_PRIORITY
         end
 
-        trackers = Tracker.all
-
-        Issue.create({ :tracker_id => DEFAULT_TRACKER_ID,
+        tracker = trackers.find { |t| !issue_labels.find { |l| t.name.casecmp(l) == 0}.nil?}
+        redmine_issue = Issue.new({ :tracker_id => tracker.nil? ? DEFAULT_TRACKER_ID : tracker.id,
                        :project_id => redmine_project.id,
                        :subject => issue['title'],
                        :description => issue['description'],
+                       :start_date => issue['start_date'],
                        :due_date => issue['due_date'],
                        :status_id => status_id,
                        :priority_id => priority_id,
@@ -202,6 +220,24 @@ class GitlabImporterController < ApplicationController
                        :created_on => issue['created_at'],
                        :updated_on => issue['updated_at']
                      })
+        redmine_issue.save
+        redmine_issue_id = redmine_issue.id
+        if import_comment
+          issue_comments = get_gitlab_issue_comments(gitlab_project_id, issue['iid'], access_token)
+          journals = issue_comments.map { |c|
+            comment_user = User.find_by_login(c['author']['username'])
+            {
+              :journalized_id => redmine_issue_id,
+              :journalized_type => 'Issue',
+              :user_id => comment_user.nil? ? author_id : comment_user.id,
+              :notes => c['body'],
+              :created_on => c['created_at'],
+              :updated_on => c['updated_at']
+            }
+          }
+          Journal.insert_all(journals)
+        end
+
         imported_issue_count += 1
       }
       if imported_issue_count == 0

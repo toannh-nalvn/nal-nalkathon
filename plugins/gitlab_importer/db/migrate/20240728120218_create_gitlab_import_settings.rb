@@ -4,7 +4,7 @@ class CreateGitlabImportSettings < ActiveRecord::Migration[6.1]
       t.integer :project_id
       t.string :access_token
       t.integer :gitlab_project_id
-      t.integer :parent_label_id
+      t.string :parent_label
     end
   end
 end

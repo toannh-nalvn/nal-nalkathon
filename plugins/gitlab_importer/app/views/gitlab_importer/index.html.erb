@@ -26,7 +26,7 @@
             <tr>
               <td><label for='milestone'>Milestone</label></td>
               <td>
-                <% milestones = @gitlab_milestones.nil? ? [] : @gitlab_milestones.map {|p| [p['title'], p['id']]}%>
+                <% milestones = @gitlab_milestones.nil? ? [] : @gitlab_milestones.map {|p| [p['title'], p['title']]}%>
                 <%= select_tag 'milestone_select', options_for_select(milestones), prompt: 'Select milestone' %>
               </td>
             </tr>
@@ -34,8 +34,8 @@
             <tr>
               <td><label for='label'>Label</label></td>
               <td>
-                <% labels = @gitlab_labels.nil? ? [] : @gitlab_labels.map {|p| [p['name'], p['id']]}%>
-                <%= select_tag 'label_select', options_for_select(labels), prompt: 'Select label' %>
+                <% labels = @gitlab_labels.nil? ? [] : @gitlab_labels.map {|p| [p['name'], p['name']]}%>
+                <%= select_tag 'label_selects', options_for_select(labels), multiple: true, prompt: 'Select label' %>
               </td>
             </tr>
 
@@ -50,14 +50,14 @@
             <tr id="ticket_type">
               <td>Issue status</td>
               <td>
-                <%= select_tag 'ticket_type', options_for_select([['Open', 'opened'], ['Close', 'closed']]), selected: 'opened' %>
+                <%= select_tag 'issue_status', options_for_select([['All', 'all'], ['Open', 'opened'], ['Close', 'closed']], 'all') %>
               </td>
             </tr>
 
             <tr id="is_comment">
               <td>Comment</td>
               <td>
-                <%= select_tag 'is_comment', options_for_select([['Yes', 'yes'], ['No', 'no']]), selected: 'no' %>
+                <%= select_tag 'import_comment', options_for_select([['Yes', true], ['No', false]], false) %>
               </td>
             </tr>
 
@@ -83,7 +83,7 @@
           $.each(options, function (index, option) {
               element.append(
                   $('<option>', {
-                      value: option.id,
+                      value: option.name,
                       text: option.name
                   })
               );
